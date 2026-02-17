@@ -266,10 +266,11 @@ function renderCollection(append = false) {
     container.innerHTML = '';
   }
   
-  // Count card entries by name (not quantity, just how many different entries)
+  // Count card entries by oracle_id (groups flavor name variants) or name
   const nameCounts = {};
   filteredCollection.forEach(c => {
-    nameCounts[c.name] = (nameCounts[c.name] || 0) + 1;
+    const key = c.oracle_id || c.name;
+    nameCounts[key] = (nameCounts[key] || 0) + 1;
   });
   
   const cardsToShow = filteredCollection.slice(displayedCards, displayedCards + CARDS_PER_PAGE);

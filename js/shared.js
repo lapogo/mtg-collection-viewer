@@ -108,7 +108,8 @@ async function loadFullCardData(onProgress, forceRefresh = false) {
           keywords: cardData.keywords || [],
           reserved: cardData.reserved || false,
           scryfallPrices: cardData.prices || null,
-          released_at: cardData.released_at || null
+          released_at: cardData.released_at || null,
+          oracle_id: cardData.oracle_id || null
         };
         
         await cacheCardData(cardData.id, extracted);
@@ -150,7 +151,8 @@ function renderCardHTML(card, nameCounts = {}) {
   const fallbackIcon = 'https://svgs.scryfall.io/sets/default.svg';
   const mainType = getMainType(card.type_line);
   const keywordTags = (card.keywords || []).slice(0, 3).map(k => `<span class="badge keyword-badge clickable" data-filter="keyword" data-value="${k}">${k}</span>`).join('');
-  const hasDuplicateName = nameCounts[card.name] > 1; // More than 1 card entry with same name
+  const duplicateKey = card.oracle_id || card.name;
+  const hasDuplicateName = nameCounts[duplicateKey] > 1; // More than 1 card entry with same oracle_id/name
   return `
   <div class="card ${foilClass}" data-scryfall-id="${card.scryfallId}">
     <a href="detail.html?id=${card.scryfallId}" class="card-link">
@@ -394,10 +396,15 @@ function applyFilters() {
   const selectedColors = [...colorIdentityChecks].map(c => c.value);
   
   // Count name occurrences for duplicate filter
+  // Use oracle_id if available (groups flavor name variants), otherwise fall back to name
   const nameCounts = {};
-  collection.forEach(c => { nameCounts[c.name] = (nameCounts[c.name] || 0) + 1; });
+  collection.forEach(c => {
+    const key = c.oracle_id || c.name;
+    nameCounts[key] = (nameCounts[key] || 0) + 1;
+  });
   
   filteredCollection = collection.filter(card => {
+    const duplicateKey = card.oracle_id || card.name;
     const matchesType = !typeFilter || (card.type_line && card.type_line.includes(typeFilter));
     const matchesSubtype = !subtypeFilter || (card.type_line && card.type_line.toLowerCase().includes(subtypeFilter));
     const matchesColor = !colorFilter || matchCardColor(card, colorFilter);
@@ -405,7 +412,8 @@ function applyFilters() {
     const matchesKeyword = !keywordFilter || (card.keywords && card.keywords.includes(keywordFilter));
     const matchesCmc = cmcFilter === undefined || (cmcFilter === 6 ? card.cmc >= 6 : card.cmc === cmcFilter);
     const matchesReserved = !reservedFilter || (reservedFilter === 'yes' ? card.reserved : !card.reserved);
-    const matchesDuplicates = !duplicatesFilter || (duplicatesFilter === 'yes' ? nameCounts[card.name] > 1 : nameCounts[card.name] === 1);
+    const matchesDuplicates = !duplicatesFilter || 
+      (duplicatesFilter === 'duplicates' ? nameCounts[duplicateKey] > 1 : nameCounts[duplicateKey] === 1);
     
     return card.name.toLowerCase().includes(search) &&
       (!setFilter || card.setName.toLowerCase().includes(setFilter)) &&
