@@ -492,7 +492,6 @@ h1 {
   position: relative;
 }
 
-.filter-group.autocomplete-wrapper,
 .filter-group.price-slider {
   align-self: flex-start;
 }
