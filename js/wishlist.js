@@ -254,7 +254,7 @@ async function searchScryfall(query) {
   if (!query) return [];
   
   try {
-    const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&order=usd&dir=desc`);
+    const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&unique=prints&order=usd&dir=desc`);
     if (response.ok) {
       const data = await response.json();
       return data.data || [];
@@ -273,7 +273,7 @@ function showSearchModal() {
   
   modal.classList.remove('hidden');
   input.value = '';
-  results.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Type to search...</p>';
+  results.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 20px;">Search for any Magic card...</p>';
   input.focus();
   
   let timeout;
@@ -282,58 +282,96 @@ function showSearchModal() {
     timeout = setTimeout(async () => {
       const query = input.value.trim();
       if (!query) {
-        results.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Type to search...</p>';
+        results.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 20px;">Search for any Magic card...</p>';
         return;
       }
       
-      results.innerHTML = '<p style="text-align: center;">Searching...</p>';
+      results.innerHTML = '<p style="text-align: center; padding: 20px;">Searching...</p>';
       const cards = await searchScryfall(query);
       
       if (cards.length === 0) {
-        results.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No results found</p>';
+        results.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 20px;">No results found</p>';
         return;
       }
       
-      results.innerHTML = cards.slice(0, 20).map(card => {
-        const usdPrice = card.prices?.usd || card.prices?.usd_foil || '0';
-        const inWishlist = wishlistCards.some(c => c.scryfallId === card.id);
+      // Group by card name
+      const grouped = {};
+      cards.forEach(card => {
+        const name = card.name;
+        if (!grouped[name]) grouped[name] = [];
+        grouped[name].push(card);
+      });
+      
+      results.innerHTML = Object.entries(grouped).slice(0, 10).map(([name, versions]) => {
         return `
-          <div class="search-result" data-card='${JSON.stringify({
-            name: card.name,
-            scryfallId: card.id,
-            setCode: card.set.toUpperCase(),
-            setName: card.set_name,
-            collectorNumber: card.collector_number,
-            rarity: card.rarity,
-            foil: 'normal',
-            quantity: 1,
-            price: parseFloat(usdPrice),
-            currency: 'USD',
-            scryfallPrices: card.prices,
-            imageUrl: card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal,
-            types: card.type_line,
-            colors: card.colors || [],
-            keywords: card.keywords || [],
-            manaCost: card.mana_cost || '',
-            cmc: card.cmc || 0
-          })}'>
-            <img src="${card.image_uris?.small || card.card_faces?.[0]?.image_uris?.small}" alt="${card.name}" style="width: 60px; height: 84px; border-radius: 4px;">
-            <div style="flex: 1;">
-              <strong>${card.name}</strong>
-              <div style="font-size: 0.9em; color: var(--text-secondary);">${card.set_name} • ${card.rarity}</div>
-            </div>
-            <div style="text-align: right;">
-              <strong>$${usdPrice}</strong>
-              ${inWishlist ? '<div style="color: var(--success); font-size: 0.9em;">✓ In Wishlist</div>' : ''}
+          <div class="search-group">
+            <div class="search-group-name">${name} <span style="color: var(--text-secondary);">(${versions.length} version${versions.length > 1 ? 's' : ''})</span></div>
+            <div class="version-cards">
+              ${versions.map(card => {
+                const usdPrice = card.prices?.usd || card.prices?.usd_foil || card.prices?.usd_etched || '0';
+                const foilStatus = card.prices?.usd ? 'normal' : (card.prices?.usd_foil ? 'foil' : (card.prices?.usd_etched ? 'etched' : 'normal'));
+                const inWishlist = wishlistCards.some(c => c.scryfallId === card.id);
+                return `
+                  <div class="version-card ${foilStatus !== 'normal' ? foilStatus : ''} ${inWishlist ? 'in-wishlist' : ''}" 
+                       data-card='${JSON.stringify({
+                         name: card.name,
+                         scryfallId: card.id,
+                         setCode: card.set.toUpperCase(),
+                         setName: card.set_name,
+                         collectorNumber: card.collector_number,
+                         rarity: card.rarity,
+                         foil: foilStatus,
+                         quantity: 1,
+                         price: parseFloat(card.prices?.usd || '0'),
+                         currency: 'USD',
+                         scryfallPrices: card.prices,
+                         imageUrl: card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal,
+                         types: card.type_line,
+                         colors: card.colors || [],
+                         keywords: card.keywords || [],
+                         manaCost: card.mana_cost || '',
+                         cmc: card.cmc || 0
+                       })}'>
+                    <div class="version-card-inner">
+                      <img src="${card.image_uris?.small || card.card_faces?.[0]?.image_uris?.small}" 
+                           alt="${card.name}" 
+                           class="version-card-front"
+                           onerror="this.src='images/back.png'">
+                      <img src="images/back.png" alt="Card back" class="version-card-back">
+                    </div>
+                    <div class="version-info">
+                      <div class="version-set">${card.set_name}</div>
+                      <div class="version-code">${card.set.toUpperCase()} #${card.collector_number}${foilStatus !== 'normal' ? ' ✨' : ''}</div>
+                      <div class="version-price">$${usdPrice}</div>
+                      ${inWishlist ? '<div class="version-added">✓ In Wishlist</div>' : ''}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
             </div>
           </div>
         `;
       }).join('');
       
-      document.querySelectorAll('.search-result').forEach(el => {
+      // Add click handlers
+      document.querySelectorAll('.version-card:not(.in-wishlist)').forEach(el => {
         el.addEventListener('click', () => {
           const card = JSON.parse(el.dataset.card);
           addToWishlist(card);
+          el.classList.add('in-wishlist');
+          el.querySelector('.version-info').insertAdjacentHTML('beforeend', '<div class="version-added">✓ Added</div>');
+        });
+        
+        // Add 3D tilt
+        const inner = el.querySelector('.version-card-inner');
+        el.addEventListener('mousemove', (e) => {
+          const rect = el.getBoundingClientRect();
+          const x = (e.clientX - rect.left) / rect.width - 0.5;
+          const y = (e.clientY - rect.top) / rect.height - 0.5;
+          inner.style.transform = `rotateX(${-y * 20}deg) rotateY(${x * 20}deg)`;
+        });
+        el.addEventListener('mouseleave', () => {
+          inner.style.transform = '';
         });
       });
     }, 300);
