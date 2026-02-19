@@ -129,6 +129,12 @@ Choose between two price sources:
 
 ### 🔧 Additional Tools
 
+- **Trading Binder** - Curate cards for trading
+  - Right-click any card → "Add to Trading Binder"
+  - Works across all views (Collection Explorer, Binder, Carousel, Timeline, Detail)
+  - Generate shareable links with compressed URLs
+  - Filter and sort your trading cards
+  - Remove cards with one click
 - **Deck Checker** - Paste a deck list to see which cards you own vs. need
   - **Flavor Name Support** - Automatically matches cards with flavor names (e.g., "Gary, the Snail" → "Toxrill, the Corrosive")
   - Supports Moxfield format (handles double-faced cards with single slash)
