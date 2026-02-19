@@ -35,6 +35,8 @@ function syncBinder() {
 
 function updateSyncBanner() {
   const banner = document.getElementById('sync-banner');
+  if (!banner) return;
+  
   const addedCount = localOnlyCards.length;
   const removedCount = removedCards.length;
   const totalChanges = addedCount + removedCount;
@@ -43,14 +45,14 @@ function updateSyncBanner() {
     banner.classList.remove('hidden');
     let message = '⚠️ You have ';
     if (addedCount > 0 && removedCount > 0) {
-      message += `${addedCount} added and ${removedCount} removed cards`;
+      message += `<strong>${addedCount}</strong> added and <strong>${removedCount}</strong> removed cards`;
     } else if (addedCount > 0) {
-      message += `${addedCount} unpersisted cards`;
+      message += `<strong>${addedCount}</strong> unpersisted cards`;
     } else {
-      message += `${removedCount} removed cards`;
+      message += `<strong>${removedCount}</strong> removed cards`;
     }
-    banner.querySelector('.unpersisted-count').textContent = totalChanges;
-    banner.querySelector('span').innerHTML = message;
+    const span = banner.querySelector('span');
+    if (span) span.innerHTML = message;
   } else {
     banner.classList.add('hidden');
   }
@@ -302,6 +304,7 @@ async function onCollectionLoaded() {
       saveBinder();
       collection = [];
       filteredCollection = [];
+      syncBinder();
       renderBinder();
     }
   });
