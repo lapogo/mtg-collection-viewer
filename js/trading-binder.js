@@ -144,6 +144,12 @@ function generateShareLink() {
 async function onCollectionLoaded() {
   await loadBinder();
   
+  // Setup price slider
+  if (binderCards.length > 0) {
+    maxPriceValue = Math.ceil(Math.max(...binderCards.map(c => getCardPrice(c))));
+    setupPriceSlider();
+  }
+  
   // Setup collapsible filters
   document.getElementById('filters-toggle')?.addEventListener('click', function() {
     this.classList.toggle('expanded');
