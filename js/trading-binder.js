@@ -162,7 +162,7 @@ async function loadPersistedBinder() {
 // Load password hash from separate file
 async function loadPasswordHash() {
   try {
-    const response = await fetch(`data/trading-binder-password.json?t=${Date.now()}`);
+    const response = await fetch(`data/admin-password.json?t=${Date.now()}`);
     if (response.ok) {
       const data = await response.json();
       passwordHash = data.passwordHash || null;

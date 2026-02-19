@@ -37,7 +37,7 @@ async function loadPersistedWishlist() {
 // Load password hash
 async function loadPasswordHash() {
   try {
-    const response = await fetch(`data/wishlist-password.json?t=${Date.now()}`);
+    const response = await fetch(`data/admin-password.json?t=${Date.now()}`);
     if (response.ok) {
       const data = await response.json();
       passwordHash = data.passwordHash || null;
