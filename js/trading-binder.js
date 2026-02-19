@@ -144,8 +144,8 @@ function generateShareLink() {
 async function onCollectionLoaded() {
   await loadBinder();
   
-  // Setup price slider
-  if (binderCards.length > 0) {
+  // Setup price slider (only if not already initialized)
+  if (binderCards.length > 0 && !priceSlider) {
     maxPriceValue = Math.ceil(Math.max(...binderCards.map(c => getCardPrice(c))));
     if (maxPriceValue < 10) maxPriceValue = 10; // Minimum range
     setupPriceSlider();
