@@ -3,6 +3,60 @@ let binderCards = [];
 let persistedCards = []; // Cards from git file
 let localOnlyCards = []; // Cards in localStorage but not in git
 let removedCards = []; // Cards in git but not in localStorage
+let isLocked = true; // Binder is locked by default
+let passwordHash = null; // Password hash from git file
+
+// Hash password using SHA-256
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Check if password is correct
+async function verifyPassword(password) {
+  const hash = await hashPassword(password);
+  return hash === passwordHash;
+}
+
+// Toggle lock state
+async function toggleLock() {
+  if (isLocked) {
+    // Unlock - ask for password
+    const password = prompt('Enter password to unlock binder:');
+    if (!password) return;
+    
+    if (await verifyPassword(password)) {
+      isLocked = false;
+      updateLockUI();
+      showNotification('🔓 Binder unlocked');
+    } else {
+      showNotification('❌ Incorrect password');
+    }
+  } else {
+    // Lock
+    isLocked = true;
+    updateLockUI();
+    showNotification('🔒 Binder locked');
+  }
+}
+
+function updateLockUI() {
+  const lockBtn = document.getElementById('toggle-lock');
+  const removeButtons = document.querySelectorAll('.remove-from-binder');
+  
+  if (isLocked) {
+    lockBtn.textContent = '🔒 Unlock Binder';
+    lockBtn.classList.remove('unlocked');
+    removeButtons.forEach(btn => btn.style.display = 'none');
+  } else {
+    lockBtn.textContent = '🔓 Lock Binder';
+    lockBtn.classList.add('unlocked');
+    removeButtons.forEach(btn => btn.style.display = 'block');
+  }
+}
 
 // Load persisted binder from git
 async function loadPersistedBinder() {
@@ -11,6 +65,7 @@ async function loadPersistedBinder() {
     if (response.ok) {
       const data = await response.json();
       persistedCards = data.cards || [];
+      passwordHash = data.passwordHash || null;
       return persistedCards;
     }
   } catch (e) {
@@ -189,10 +244,15 @@ function renderBinder() {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
+      if (isLocked) {
+        showNotification('🔒 Binder is locked. Unlock to remove cards.');
+        return;
+      }
       removeFromBinder(btn.dataset.id);
     });
   });
   
+  updateLockUI();
   updateStats();
 }
 
@@ -271,6 +331,8 @@ async function onCollectionLoaded() {
     setupPriceSlider();
   }
   
+  document.getElementById('toggle-lock').addEventListener('click', toggleLock);
+  
   document.getElementById('download-binder').addEventListener('click', downloadBinderFile);
   
   document.getElementById('sync-from-git').addEventListener('click', () => {
@@ -312,6 +374,10 @@ async function onCollectionLoaded() {
   
   document.getElementById('clear-binder').addEventListener('click', () => {
     if (binderCards.length === 0) return;
+    if (isLocked) {
+      showNotification('🔒 Binder is locked. Unlock to clear.');
+      return;
+    }
     if (confirm('Clear all cards from your trading binder?')) {
       binderCards = [];
       saveBinder();
