@@ -49,6 +49,8 @@ function renderCarousel() {
     const isActive = card.classList.contains('active');
     fetchCardImage(id, isActive ? 'normal' : 'small').then(url => { if (url) img.src = url; });
   });
+  
+  setupCardInteractions(container);
 }
 
 function onCollectionLoaded() {

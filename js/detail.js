@@ -98,26 +98,6 @@ function parseCollectionData(csvText, scryfallId) {
   return null;
 }
 
-function parseCSVLine(line) {
-  const result = [];
-  let current = '';
-  let inQuotes = false;
-  
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
-      result.push(current);
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  result.push(current);
-  return result;
-}
-
 function formatDetailPrice(price, currency = 'USD') {
   const symbols = { USD: '$', CAD: 'CA$', EUR: '€', GBP: '£', AUD: 'A$', JPY: '¥' };
   const symbol = symbols[currency] || currency + ' ';
@@ -323,6 +303,12 @@ function renderCardDetails(card, collectionCard) {
   document.addEventListener('touchend', endDrag);
   document.addEventListener('mousemove', onMove);
   document.addEventListener('touchmove', onMove);
+  
+  // Add context menu for trading binder
+  wrapper.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    showContextMenu(e.clientX, e.clientY, scryfallId);
+  });
 }
 
 function createParticles(colors) {
@@ -470,6 +456,13 @@ async function loadUpgrades(card, collectionCard) {
       document.addEventListener('touchend', endDrag);
       document.addEventListener('mousemove', onMove);
       document.addEventListener('touchmove', onMove);
+      
+      // Add context menu for trading binder
+      card.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        const cardId = card.dataset.cardId;
+        showContextMenu(e.clientX, e.clientY, cardId);
+      });
     });
   } catch (e) {
     console.error('Failed to load upgrades:', e);

@@ -179,15 +179,10 @@ The app expects a Moxfield-style CSV with these columns:
 
 The project includes comprehensive test suites:
 
-- **test/test-game-tracker.html** - Game tracker functionality tests
-- **test/test-detail.html** - Card detail page tests  
-- **test/test-card-back.html** - Card back visibility tests (3D flip effects)
-- **test/test-card-back-integration.html** - Card back integration tests across all pages
-- **test/test-foil-shimmer.html** - Foil shimmer effect standardization tests
-- **test/test-flavor-names.html** - Flavor name support tests (deck checker)
-- **test/test-copies-filter.html** - Copies filter tests (All/Duplicates/Unique with oracle_id)
+- **test/index.html** - Unified test runner (80+ tests)
+- **test/test.js** - All test cases
 
-Open any test file in a browser to run the test suite.
+Open `test/index.html` in a browser to run the test suite.
 - [Chart.js](https://www.chartjs.org/) for analytics charts
 - [noUiSlider](https://refreshless.com/nouislider/) for price range slider
 - [Scryfall API](https://scryfall.com/docs/api) for card images and data

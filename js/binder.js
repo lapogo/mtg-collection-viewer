@@ -187,6 +187,8 @@ function renderBinder(direction = null) {
 function setupBinderHover() {
   const preview = document.getElementById('card-preview');
   const previewImg = preview.querySelector('img');
+  const leftPage = document.querySelector('.binder-page-left');
+  const rightPage = document.querySelector('.binder-page-right');
   
   document.querySelectorAll('.binder-card[data-scryfall-id]').forEach(card => {
     card.addEventListener('mouseenter', async (e) => {
@@ -209,6 +211,9 @@ function setupBinderHover() {
       preview.classList.add('hidden');
     });
   });
+  
+  setupCardInteractions(leftPage);
+  setupCardInteractions(rightPage);
 }
 
 function onCollectionLoaded() {

@@ -490,12 +490,14 @@ h1 {
 
 .filter-group {
   position: relative;
+  align-self: flex-start;
 }
 
 .filter-group.price-slider {
   min-width: 200px;
   padding-bottom: 20px;
   margin-bottom: 10px;
+  align-self: flex-start;
 }
 
 .filter-group.price-slider label {
@@ -847,9 +849,11 @@ h1 {
 /* Autocomplete */
 .filter-group {
   position: relative;
+  align-self: flex-start;
 }
 
 .autocomplete-wrapper {
+  position: relative;
   flex: 1;
   min-width: 150px;
   max-width: 250px;
