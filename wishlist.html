@@ -4,33 +4,45 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Wishlist - MTG Collection Viewer</title>
+  <link rel="icon" href="images/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nouislider@15/dist/nouislider.min.css">
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nouislider@15.7.0/dist/nouislider.min.css">
-  <link rel="icon" type="image/x-icon" href="images/favicon.ico">
 </head>
 <body>
+  <div class="nav-menu">
+    <button type="button" class="menu-toggle" id="menu-toggle">☰</button>
+    <div class="menu-overlay" id="menu-overlay"></div>
+    <div class="menu-dropdown" id="menu-dropdown">
+      <div class="menu-header">MTG Collection</div>
+      <div class="menu-section">
+        <div class="menu-section-title">Views</div>
+        <a href="index.html" class="menu-item">⊞ Collection Explorer</a>
+        <a href="binder.html" class="menu-item">📖 Binder View</a>
+        <a href="carousel.html" class="menu-item">🎠 Carousel View</a>
+        <a href="timeline.html" class="menu-item">📅 Timeline View</a>
+      </div>
+      <div class="menu-section">
+        <div class="menu-section-title">Tools</div>
+        <a href="deck-checker.html" class="menu-item">🔍 Deck Checker</a>
+        <a href="trade-calculator.html" class="menu-item">⚖️ Trade Calculator</a>
+        <a href="trading-binder.html" class="menu-item">📖 Trading Binder</a>
+        <a href="wishlist.html" class="menu-item active">💫 Wishlist</a>
+        <a href="trivia.html" class="menu-item">🎯 Collection Trivia</a>
+        <a href="guess-card.html" class="menu-item">🎴 Guess the Card</a>
+        <a href="game-tracker.html" class="menu-item">🎮 Game Tracker</a>
+      </div>
+    </div>
+  </div>
+
   <header>
     <h1>💫 Wishlist</h1>
-    <nav>
-      <a href="index.html">Collection</a>
-      <a href="binder.html">Binder</a>
-      <a href="carousel.html">Carousel</a>
-      <a href="timeline.html">Timeline</a>
-      <a href="game-tracker.html">Game Tracker</a>
-      <a href="deck-checker.html">Deck Checker</a>
-      <a href="trade-calculator.html">Trade Calculator</a>
-      <a href="trading-binder.html">Trading Binder</a>
-      <a href="wishlist.html" class="active">Wishlist</a>
-      <a href="trivia.html">Trivia</a>
-      <a href="guess-card.html">Guess Card</a>
-    </nav>
     <div class="stats">
       <span>Cards: <strong id="total-cards">0</strong></span>
       <span>Value (Scryfall USD): <strong id="total-value">$0.00</strong></span>
     </div>
   </header>
 
-  <div class="wishlist-actions">
+  <div class="binder-actions">
     <button type="button" id="toggle-lock" class="btn">🔒 Unlock Wishlist</button>
     <button type="button" id="search-cards" class="btn" style="display: none;">🔍 Search Cards</button>
     <button type="button" id="download-wishlist" class="btn btn-secondary" style="display: none;">💾 Download File</button>
@@ -85,7 +97,7 @@
 
   <div id="wishlist-collection" class="card-grid"></div>
 
-  <div id="empty-state" class="empty-state">
+  <div id="empty-state" class="empty-state" style="display: none;">
     <h2>Your wishlist is empty</h2>
     <p>Unlock the wishlist and search for cards to add</p>
   </div>
