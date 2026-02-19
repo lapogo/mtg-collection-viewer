@@ -2636,3 +2636,123 @@ h1 {
 .modal-btn.cancel:hover, .modal-btn.close:hover {
   background: var(--border-hover, #555);
 }
+
+
+/* Context Menu */
+.context-menu {
+  position: fixed;
+  background: var(--bg-secondary, #2a2a2a);
+  border: 1px solid var(--border, #444);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  min-width: 200px;
+  overflow: hidden;
+}
+
+.context-menu-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  color: var(--text, #f0f0f0);
+  transition: background 0.2s;
+  font-size: 0.95rem;
+}
+
+.context-menu-item:hover {
+  background: var(--accent, #e63946);
+  color: white;
+}
+
+/* Notification */
+.notification {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: var(--accent, #e63946);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 10001;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s ease;
+}
+
+.notification.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Trading Binder */
+.binder-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent, #e63946);
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn:hover {
+  background: var(--accent-hover, #d62839);
+  transform: translateY(-1px);
+}
+
+.btn-danger {
+  background: #f44336;
+}
+
+.btn-danger:hover {
+  background: #d32f2f;
+}
+
+.remove-from-binder {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(244, 67, 54, 0.9);
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: all 0.2s;
+}
+
+.remove-from-binder:hover {
+  background: #f44336;
+  transform: scale(1.1);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary, #999);
+}
+
+.empty-state h2 {
+  color: var(--text, #f0f0f0);
+  margin-bottom: 10px;
+}
+
+.empty-state p {
+  font-size: 1.1rem;
+}

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trading Binder - MTG Collection</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="images/favicon.ico">
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <a href="index.html" class="nav-link">← Back to Collection</a>
+    </div>
+    <h1>📖 Trading Binder</h1>
+    <div class="nav-right">
+      <span id="binder-count">0 cards</span>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="binder-actions">
+      <button type="button" id="share-binder" class="btn">📋 Copy Share Link</button>
+      <button type="button" id="clear-binder" class="btn btn-danger">🗑️ Clear Binder</button>
+    </div>
+
+    <div id="binder-stats" class="stats-bar">
+      <div class="stat">
+        <span class="stat-label">Total Cards:</span>
+        <span class="stat-value" id="total-cards">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Total Value:</span>
+        <span class="stat-value" id="total-value">$0.00</span>
+      </div>
+    </div>
+
+    <div id="binder-collection" class="collection"></div>
+    <div id="empty-state" class="empty-state">
+      <h2>Your trading binder is empty</h2>
+      <p>Right-click on any card in your collection and select "Add to Trading Binder"</p>
+    </div>
+  </div>
+
+  <script src="js/shared.js"></script>
+  <script src="js/trading-binder.js"></script>
+</body>
+</html>

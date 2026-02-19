@@ -219,6 +219,15 @@ function setupCardInteractions(container) {
     wrapper.addEventListener('click', e => { if (hasMoved) e.preventDefault(); });
   });
   
+  // Right-click context menu for trading binder
+  container.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      const scryfallId = card.dataset.scryfallId;
+      showContextMenu(e.clientX, e.clientY, scryfallId);
+    });
+  });
+  
   // Clickable badge filters
   container.querySelectorAll('.clickable').forEach(el => {
     el.addEventListener('click', e => {
@@ -237,6 +246,66 @@ function setupCardInteractions(container) {
       applyFilters();
     });
   });
+}
+
+function showContextMenu(x, y, scryfallId) {
+  // Remove existing menu
+  document.querySelectorAll('.context-menu').forEach(m => m.remove());
+  
+  const menu = document.createElement('div');
+  menu.className = 'context-menu';
+  menu.style.left = `${x}px`;
+  menu.style.top = `${y}px`;
+  menu.innerHTML = `
+    <div class="context-menu-item" data-action="add-to-binder">
+      📖 Add to Trading Binder
+    </div>
+  `;
+  
+  document.body.appendChild(menu);
+  
+  menu.querySelector('[data-action="add-to-binder"]').addEventListener('click', () => {
+    addToTradingBinder(scryfallId);
+    menu.remove();
+  });
+  
+  // Close on click outside
+  setTimeout(() => {
+    document.addEventListener('click', () => menu.remove(), { once: true });
+  }, 0);
+}
+
+function addToTradingBinder(scryfallId) {
+  const stored = localStorage.getItem('tradingBinder');
+  let ids = [];
+  
+  try {
+    ids = stored ? JSON.parse(stored) : [];
+  } catch (e) {
+    ids = [];
+  }
+  
+  if (ids.includes(scryfallId)) {
+    showNotification('Card already in trading binder');
+    return;
+  }
+  
+  ids.push(scryfallId);
+  localStorage.setItem('tradingBinder', JSON.stringify(ids));
+  showNotification('Added to trading binder');
+}
+
+function showNotification(message) {
+  const notification = document.createElement('div');
+  notification.className = 'notification';
+  notification.textContent = message;
+  document.body.appendChild(notification);
+  
+  setTimeout(() => notification.classList.add('show'), 10);
+  setTimeout(() => {
+    notification.classList.remove('show');
+    setTimeout(() => notification.remove(), 300);
+  }, 2000);
 }
 
 async function fetchCardImage(scryfallId, size = 'normal') {
