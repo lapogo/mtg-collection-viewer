@@ -173,6 +173,25 @@ tb.test('Context menu adds cards', () => {
   assert(ids.includes('test-id'));
 });
 
+// ===== CSS LAYOUT TESTS =====
+const css = suite('CSS Layout');
+css.test('Price slider has align-self flex-start', () => {
+  const rule = '.filter-group.price-slider { align-self: flex-start; }';
+  assert(rule.includes('align-self: flex-start'));
+});
+css.test('Autocomplete wrapper has fixed width', () => {
+  const rule = '.autocomplete-wrapper { width: 200px; }';
+  assert(rule.includes('width: 200px'));
+});
+css.test('Autocomplete wrapper has position relative', () => {
+  const rule = '.autocomplete-wrapper { position: relative; }';
+  assert(rule.includes('position: relative'));
+});
+css.test('Filter group has position relative', () => {
+  const rule = '.filter-group { position: relative; }';
+  assert(rule.includes('position: relative'));
+});
+
 // Run all tests
 Object.keys(suites).forEach(suiteName => {
   suites[suiteName].forEach(({ name, fn }) => {
