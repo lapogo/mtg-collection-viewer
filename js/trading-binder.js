@@ -273,6 +273,19 @@ async function onCollectionLoaded() {
   
   document.getElementById('download-binder').addEventListener('click', downloadBinderFile);
   
+  document.getElementById('sync-from-git').addEventListener('click', () => {
+    if (confirm('Reset local binder to match git? This will discard local changes.')) {
+      const ids = persistedCards.map(c => c.scryfallId);
+      binderCards = collection.filter(c => ids.includes(c.scryfallId));
+      localStorage.setItem('tradingBinder', JSON.stringify(ids));
+      collection = [...binderCards];
+      filteredCollection = [...binderCards];
+      syncBinder();
+      renderBinder();
+      showNotification('✓ Binder reset to match git');
+    }
+  });
+  
   document.getElementById('share-binder').addEventListener('click', async () => {
     if (binderCards.length === 0) {
       alert('Add some cards to your binder first!');
