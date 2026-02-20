@@ -295,8 +295,7 @@ function exportMoxfield() {
   if (!wishlistCards.length) return showNotification('Wishlist is empty');
   const lines = wishlistCards.map(c => {
     const name = c.oracleName || c.name;
-    const foilSuffix = c.foil === 'foil' ? ' *F*' : '';
-    return `${c.quantity} ${name} (${c.setCode}) ${c.collectorNumber}${foilSuffix}`;
+    return `${c.quantity} ${name}`;
   });
   const text = lines.join('\n');
   navigator.clipboard.writeText(text).then(() => {
