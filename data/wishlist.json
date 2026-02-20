@@ -1,4 +1,21 @@
 {
-  "cards": [],
-  "lastModified": "2026-02-19T23:09:00.000Z"
+  "cards": [
+    {
+      "scryfallId": "cf2674d0-ac96-472d-9e86-0c463fc4d7d7-foil",
+      "addedAt": "2026-02-20T06:34:33.559Z"
+    },
+    {
+      "scryfallId": "cbb2277d-ce6a-4c28-b868-c3d48beae7da-foil",
+      "addedAt": "2026-02-20T06:34:33.559Z"
+    },
+    {
+      "scryfallId": "509c00d2-6a84-4760-8927-483ed123b05f-foil",
+      "addedAt": "2026-02-20T06:34:33.559Z"
+    },
+    {
+      "scryfallId": "4dc6ed00-45d3-4c5c-8d19-57334023879f-foil",
+      "addedAt": "2026-02-20T06:34:33.559Z"
+    }
+  ],
+  "lastModified": "2026-02-20T06:34:33.559Z"
 }
