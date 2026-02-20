@@ -1,6 +1,8 @@
 // Wishlist state
 let wishlistCards = [];
 let persistedCards = [];
+let localOnlyCards = [];
+let removedCards = [];
 let isLocked = true;
 let passwordHash = null;
 
@@ -122,7 +124,50 @@ async function loadWishlist() {
   
   collection = [...wishlistCards];
   filteredCollection = [...wishlistCards];
+  syncWishlist();
   applyFilters();
+}
+
+// Sync state
+function syncWishlist() {
+  const localIds = wishlistCards.map(c => c.scryfallId);
+  const persistedIds = persistedCards.map(c => c.scryfallId);
+  localOnlyCards = wishlistCards.filter(c => !persistedIds.includes(c.scryfallId));
+  removedCards = persistedCards.filter(p => !localIds.includes(p.scryfallId));
+  updateSyncBanner();
+}
+
+function updateSyncBanner() {
+  const banner = document.getElementById('sync-banner');
+  if (!banner || isLocked) return;
+  
+  const addedCount = localOnlyCards.length;
+  const removedCount = removedCards.length;
+  const totalChanges = addedCount + removedCount;
+  
+  if (totalChanges > 0) {
+    banner.classList.remove('hidden');
+    let message = '⚠️ You have ';
+    if (addedCount > 0 && removedCount > 0) {
+      message += `<strong>${addedCount}</strong> added and <strong>${removedCount}</strong> removed cards`;
+    } else if (addedCount > 0) {
+      message += `<strong>${addedCount}</strong> unpersisted cards`;
+    } else {
+      message += `<strong>${removedCount}</strong> removed cards`;
+    }
+    const span = banner.querySelector('span');
+    if (span) span.innerHTML = message;
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+
+function getCardState(scryfallId) {
+  const inLocal = wishlistCards.some(c => c.scryfallId === scryfallId);
+  const inGit = persistedCards.some(c => c.scryfallId === scryfallId);
+  if (inLocal && inGit) return 'persisted';
+  if (inLocal && !inGit) return 'pending';
+  return 'none';
 }
 
 function renderWishlist() {
@@ -141,9 +186,20 @@ function renderWishlist() {
   
   container.innerHTML = filteredCollection.map(card => {
     let html = renderCardHTML(card, {});
+    
     if (!isLocked) {
-      html += `<button class="remove-card" data-id="${card.scryfallId}">✕</button>`;
+      const state = getCardState(card.scryfallId);
+      const stateBadge = state === 'persisted' 
+        ? '<span class="state-badge persisted" title="Persisted to git">✓</span>'
+        : '<span class="state-badge pending" title="Not persisted yet">⚠️</span>';
+      
+      const lastDivIndex = html.lastIndexOf('</div>');
+      html = html.substring(0, lastDivIndex) + 
+        stateBadge +
+        `<button class="remove-from-binder" data-id="${card.scryfallId}" title="Remove from wishlist">✕</button>` +
+        html.substring(lastDivIndex);
     }
+    
     return html;
   }).join('');
   
@@ -158,8 +214,9 @@ function renderWishlist() {
   setupCardInteractions(container);
   
   if (!isLocked) {
-    container.querySelectorAll('.remove-card').forEach(btn => {
+    container.querySelectorAll('.remove-from-binder').forEach(btn => {
       btn.addEventListener('click', (e) => {
+        e.preventDefault();
         e.stopPropagation();
         removeFromWishlist(btn.dataset.id);
       });
@@ -181,6 +238,7 @@ function addToWishlist(card) {
   wishlistCards.push(card);
   localStorage.setItem('wishlist', JSON.stringify(wishlistCards.map(c => c.scryfallId)));
   collection = [...wishlistCards];
+  syncWishlist();
   applyFilters();
   showNotification(`✓ Added ${card.name}`);
 }
@@ -189,6 +247,7 @@ function removeFromWishlist(scryfallId) {
   wishlistCards = wishlistCards.filter(c => c.scryfallId !== scryfallId);
   localStorage.setItem('wishlist', JSON.stringify(wishlistCards.map(c => c.scryfallId)));
   collection = [...wishlistCards];
+  syncWishlist();
   applyFilters();
   showNotification('✓ Card removed');
 }
@@ -451,6 +510,21 @@ function setupEventListeners() {
   document.getElementById('search-cards').addEventListener('click', showSearchModal);
   document.getElementById('download-wishlist').addEventListener('click', downloadWishlist);
   document.getElementById('clear-wishlist').addEventListener('click', clearWishlist);
+  
+  // Sync banner buttons
+  document.getElementById('download-sync')?.addEventListener('click', downloadWishlist);
+  document.getElementById('sync-from-git')?.addEventListener('click', async () => {
+    if (confirm('Reset wishlist to match git? Local changes will be lost.')) {
+      const ids = persistedCards.map(c => c.scryfallId);
+      wishlistCards = await fetchCardsFromScryfall(ids);
+      localStorage.setItem('wishlist', JSON.stringify(ids));
+      collection = [...wishlistCards];
+      filteredCollection = [...wishlistCards];
+      syncWishlist();
+      renderWishlist();
+      showNotification('✓ Wishlist reset to match git');
+    }
+  });
   
   // Filter listeners
   document.getElementById('search').addEventListener('input', applyFilters);

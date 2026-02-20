@@ -117,6 +117,14 @@
     <button type="button" id="clear-wishlist" class="btn btn-danger" style="display: none;">🗑️ Clear Wishlist</button>
   </div>
 
+  <div id="sync-banner" class="sync-banner hidden">
+    <span>⚠️ You have <strong>0</strong> unpersisted cards</span>
+    <div class="sync-actions">
+      <button type="button" id="download-sync" class="btn-small">📥 Download File</button>
+      <button type="button" id="sync-from-git" class="btn-small btn-secondary">🔄 Reset to Git</button>
+    </div>
+  </div>
+
   <div id="wishlist-collection" class="collection"></div>
 
   <div id="empty-state" class="empty-state" style="display: none;">
