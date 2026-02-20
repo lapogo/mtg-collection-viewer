@@ -95,7 +95,7 @@ function scryfallToCard(card, foil = 'normal') {
     rarity: card.rarity,
     foil,
     quantity: 1,
-    price: parseFloat(foil === 'foil' ? (card.prices?.usd_foil || '0') : (card.prices?.usd || '0')),
+    price: parseFloat(foil === 'foil' ? (card.prices?.usd_foil || card.prices?.usd || '0') : (card.prices?.usd || card.prices?.usd_foil || '0')),
     currency: 'USD',
     scryfallPrices: card.prices,
     imageUrl: card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal,

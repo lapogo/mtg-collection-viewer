@@ -715,7 +715,7 @@
               const versions = [];
               for (const c of data.data) {
                 if (c.nonfoil) versions.push({ scryfallId: c.id, setCode: c.set.toUpperCase(), setName: c.set_name, collectorNumber: c.collector_number, foil: 'normal', price: parseFloat(c.prices?.usd || '0'), imageUrl: c.image_uris?.normal || c.card_faces?.[0]?.image_uris?.normal });
-                if (c.foil) versions.push({ scryfallId: c.id + '-foil', setCode: c.set.toUpperCase(), setName: c.set_name, collectorNumber: c.collector_number, foil: 'foil', price: parseFloat(c.prices?.usd_foil || '0'), imageUrl: c.image_uris?.normal || c.card_faces?.[0]?.image_uris?.normal });
+                if (c.foil) versions.push({ scryfallId: c.id + '-foil', setCode: c.set.toUpperCase(), setName: c.set_name, collectorNumber: c.collector_number, foil: 'foil', price: parseFloat(c.prices?.usd_foil || c.prices?.usd || '0'), imageUrl: c.image_uris?.normal || c.card_faces?.[0]?.image_uris?.normal });
               }
               if (versions.length > 0) cardsWithVersions.push({ name: card.name, quantity: card.quantity, versions });
             }

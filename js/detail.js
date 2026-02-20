@@ -384,7 +384,7 @@ async function loadUpgrades(card, collectionCard) {
         expanded.push({ id: c.id, img, setName: c.set_name, price, foil: false, uri: c.scryfall_uri });
       }
       if (c.foil) {
-        const price = parseFloat(c.prices?.usd_foil || '0');
+        const price = parseFloat(c.prices?.usd_foil || c.prices?.usd || '0');
         expanded.push({ id: c.id + '-foil', img, setName: c.set_name, price, foil: true, uri: c.scryfall_uri });
       }
     }
