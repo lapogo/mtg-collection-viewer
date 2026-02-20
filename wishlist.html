@@ -150,12 +150,15 @@
   <div id="search-modal" class="modal hidden">
     <div class="modal-content" style="max-width: 1200px; max-height: 90vh; overflow-y: auto;">
       <h2>🔍 Search Scryfall</h2>
-      <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-        <div class="search-wrapper" style="flex: 1;">
+      <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+        <div class="search-wrapper" style="flex: 1; min-width: 200px;">
           <span class="search-icon">🔍</span>
           <input type="text" id="scryfall-search" placeholder="Search for any Magic card..." autocomplete="off">
         </div>
-        <input type="text" id="search-set-filter" placeholder="Set code (e.g. MH2)" autocomplete="off" style="width: 160px; padding: 10px 15px; border: 2px solid var(--bg-tertiary); background: var(--bg-primary); color: var(--text-primary); border-radius: 8px;">
+        <div style="position: relative;">
+          <input type="text" id="search-set-filter" placeholder="Filter by set..." autocomplete="off" style="width: 200px; padding: 10px 15px; border: 2px solid var(--bg-tertiary); background: var(--bg-primary); color: var(--text-primary); border-radius: 8px;">
+          <div id="set-search-autocomplete" class="autocomplete-list" style="position: absolute; top: 100%; left: 0; width: 300px; z-index: 10001; max-height: 200px; overflow-y: auto;"></div>
+        </div>
         <select id="search-sort" class="btn btn-secondary" style="padding: 10px 15px;">
           <option value="usd">Price ↓</option>
           <option value="set">Set</option>

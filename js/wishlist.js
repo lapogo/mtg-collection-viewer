@@ -72,7 +72,47 @@ async function fetchCardsFromScryfall(scryfallIds) {
   return cards;
 }
 
-// Convert Scryfall API card to our card format
+// Convert Scryfall API card to our card format (returns array for foil/non-foil)
+function scryfallToCards(card) {
+  const cards = [];
+  const base = {
+    name: card.name,
+    scryfallId: card.id,
+    setCode: card.set.toUpperCase(),
+    setName: card.set_name,
+    collectorNumber: card.collector_number,
+    rarity: card.rarity,
+    quantity: 1,
+    currency: 'USD',
+    scryfallPrices: card.prices,
+    imageUrl: card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal,
+    types: card.type_line,
+    type_line: card.type_line,
+    colors: card.colors || [],
+    keywords: card.keywords || [],
+    manaCost: card.mana_cost || '',
+    cmc: card.cmc || 0
+  };
+  
+  if (card.prices?.usd) {
+    cards.push({ ...base, foil: 'normal', price: parseFloat(card.prices.usd) });
+  }
+  if (card.prices?.usd_foil) {
+    cards.push({ ...base, scryfallId: card.id + '-foil', foil: 'foil', price: parseFloat(card.prices.usd_foil) });
+  }
+  if (card.prices?.usd_etched) {
+    cards.push({ ...base, scryfallId: card.id + '-etched', foil: 'etched', price: parseFloat(card.prices.usd_etched) });
+  }
+  
+  // Fallback if no prices
+  if (cards.length === 0) {
+    cards.push({ ...base, foil: 'normal', price: 0 });
+  }
+  
+  return cards;
+}
+
+// Single card version for batch fetch (persisted cards)
 function scryfallToCard(card) {
   return {
     name: card.name,
@@ -289,7 +329,12 @@ async function searchScryfall(query, sortBy = 'usd', setFilter = '') {
     const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}&unique=prints&order=${sortBy}&dir=${dir}`);
     if (response.ok) {
       const data = await response.json();
-      return data.data || [];
+      // Expand each card into foil/non-foil variants
+      const expanded = [];
+      for (const card of (data.data || [])) {
+        expanded.push(...scryfallToCards(card));
+      }
+      return expanded;
     }
   } catch (e) {
     console.error('Search failed:', e);
@@ -343,13 +388,12 @@ function showSearchModal() {
       
       results.innerHTML = Object.entries(grouped).slice(0, 10).map(([name, versions]) => `
         <div class="search-group">
-          <div class="search-group-name">${name} <span style="color:var(--text-secondary);">(${versions.length} printing${versions.length > 1 ? 's' : ''})</span></div>
-          <div class="collection">${versions.map(card => {
-            const inWishlist = wishlistCards.some(c => c.scryfallId === card.id);
-            const cardObj = scryfallToCard(card);
-            searchCardMap[card.id] = cardObj;
+          <div class="search-group-name">${name} <span style="color:var(--text-secondary);">(${versions.length} version${versions.length > 1 ? 's' : ''})</span></div>
+          <div class="collection">${versions.map(cardObj => {
+            const inWishlist = wishlistCards.some(c => c.scryfallId === cardObj.scryfallId);
+            searchCardMap[cardObj.scryfallId] = cardObj;
             const html = renderCardHTML(cardObj, {});
-            return `<div class="search-card-wrapper" data-scryfall-id="${card.id}">
+            return `<div class="search-card-wrapper" data-scryfall-id="${cardObj.scryfallId}">
               ${html}
               ${inWishlist 
                 ? '<div class="version-added">✓ In Wishlist</div>' 
@@ -363,7 +407,7 @@ function showSearchModal() {
       results.querySelectorAll('.card-image-wrapper').forEach(wrapper => {
         const card = wrapper.closest('.card');
         const img = wrapper.querySelector('.card-image');
-        const id = card.dataset.scryfallId;
+        const id = card.dataset.scryfallId.replace(/-foil$/, '').replace(/-etched$/, '');
         fetchCardImage(id).then(url => { if (url) img.src = url; });
       });
       
@@ -389,7 +433,43 @@ function showSearchModal() {
   
   input.oninput = doSearch;
   sortSelect.onchange = doSearch;
-  setFilter.oninput = doSearch;
+  setFilter.oninput = () => {
+    // Set autocomplete
+    const val = setFilter.value.trim().toLowerCase();
+    const dropdown = document.getElementById('set-search-autocomplete');
+    if (!val || val.length < 2) {
+      dropdown.innerHTML = '';
+      doSearch();
+      return;
+    }
+    
+    // Fetch matching sets from Scryfall
+    fetch(`https://api.scryfall.com/sets`)
+      .then(r => r.json())
+      .then(data => {
+        const matches = (data.data || []).filter(s => 
+          s.name.toLowerCase().includes(val) || s.code.toLowerCase().includes(val)
+        ).slice(0, 8);
+        
+        dropdown.innerHTML = matches.map(s => 
+          `<div class="autocomplete-item" data-code="${s.code}" style="padding: 8px 12px; cursor: pointer; display: flex; justify-content: space-between;">
+            <span>${s.name}</span>
+            <span style="color: var(--text-secondary);">${s.code.toUpperCase()}</span>
+          </div>`
+        ).join('');
+        
+        dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+          item.addEventListener('click', () => {
+            setFilter.value = item.dataset.code;
+            dropdown.innerHTML = '';
+            doSearch();
+          });
+        });
+      })
+      .catch(() => {});
+    
+    doSearch();
+  };
   
   document.getElementById('search-close').onclick = () => modal.classList.add('hidden');
   modal.onclick = (e) => { if (e.target === modal) modal.classList.add('hidden'); };
