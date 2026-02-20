@@ -221,11 +221,13 @@ function clearWishlist() {
 
 // === SEARCH ===
 
-async function searchScryfall(query, sortBy = 'usd') {
+async function searchScryfall(query, sortBy = 'usd', setFilter = '') {
   if (!query) return [];
   const dir = sortBy === 'name' ? 'asc' : 'desc';
+  let q = query;
+  if (setFilter) q += ` set:${setFilter}`;
   try {
-    const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&unique=prints&order=${sortBy}&dir=${dir}`);
+    const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}&unique=prints&order=${sortBy}&dir=${dir}`);
     if (response.ok) {
       const data = await response.json();
       return data.data || [];
@@ -240,13 +242,18 @@ function showSearchModal() {
   const modal = document.getElementById('search-modal');
   const input = document.getElementById('scryfall-search');
   const sortSelect = document.getElementById('search-sort');
+  const setFilter = document.getElementById('search-set-filter');
   const results = document.getElementById('search-results');
   
   modal.classList.remove('hidden');
   input.value = '';
+  setFilter.value = '';
   sortSelect.value = 'usd';
   results.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:40px;">Search for any Magic card...</p>';
   input.focus();
+  
+  // Store search results for add buttons
+  let searchCardMap = {};
   
   let timeout;
   const doSearch = () => {
@@ -259,7 +266,7 @@ function showSearchModal() {
       }
       
       results.innerHTML = '<p style="text-align:center;padding:40px;">Searching...</p>';
-      const cards = await searchScryfall(query, sortSelect.value);
+      const cards = await searchScryfall(query, sortSelect.value, setFilter.value.trim());
       
       if (cards.length === 0) {
         results.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:40px;">No results found</p>';
@@ -273,14 +280,17 @@ function showSearchModal() {
         grouped[c.name].push(c);
       });
       
+      searchCardMap = {};
+      
       results.innerHTML = Object.entries(grouped).slice(0, 10).map(([name, versions]) => `
         <div class="search-group">
           <div class="search-group-name">${name} <span style="color:var(--text-secondary);">(${versions.length} printing${versions.length > 1 ? 's' : ''})</span></div>
           <div class="collection">${versions.map(card => {
             const inWishlist = wishlistCards.some(c => c.scryfallId === card.id);
             const cardObj = scryfallToCard(card);
+            searchCardMap[card.id] = cardObj;
             const html = renderCardHTML(cardObj, {});
-            return `<div class="search-card-wrapper" data-card='${JSON.stringify(cardObj)}'>
+            return `<div class="search-card-wrapper" data-scryfall-id="${card.id}">
               ${html}
               ${inWishlist 
                 ? '<div class="version-added">✓ In Wishlist</div>' 
@@ -307,9 +317,12 @@ function showSearchModal() {
           e.stopPropagation();
           e.preventDefault();
           const wrapper = btn.closest('.search-card-wrapper');
-          const card = JSON.parse(wrapper.dataset.card);
-          addToWishlist(card);
-          btn.outerHTML = '<div class="version-added">✓ Added</div>';
+          const id = wrapper.dataset.scryfallId;
+          const card = searchCardMap[id];
+          if (card) {
+            addToWishlist(card);
+            btn.outerHTML = '<div class="version-added">✓ Added</div>';
+          }
         });
       });
     }, 300);
@@ -317,6 +330,7 @@ function showSearchModal() {
   
   input.oninput = doSearch;
   sortSelect.onchange = doSearch;
+  setFilter.oninput = doSearch;
   
   document.getElementById('search-close').onclick = () => modal.classList.add('hidden');
   modal.onclick = (e) => { if (e.target === modal) modal.classList.add('hidden'); };
