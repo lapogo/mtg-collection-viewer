@@ -3083,7 +3083,7 @@ h1 {
 .search-group-name {
   font-size: 1.1em;
   font-weight: bold;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
   padding: 10px;
   background: var(--bg-secondary);
   border-radius: 8px;
@@ -3091,24 +3091,18 @@ h1 {
 
 .version-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 15px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+  padding: 10px;
 }
 
 .version-card {
-  background: var(--bg-secondary);
-  border: 2px solid var(--bg-tertiary);
-  border-radius: 12px;
-  padding: 10px;
   cursor: pointer;
-  transition: all 0.2s;
-  perspective: 1000px;
+  transition: transform 0.2s;
 }
 
 .version-card:hover {
-  border-color: var(--accent);
   transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
 }
 
 .version-card.in-wishlist {
@@ -3116,34 +3110,14 @@ h1 {
   cursor: not-allowed;
 }
 
-.version-card.foil {
-  border-color: #ffd700;
-}
-
-.version-card.etched {
-  border-color: #c0c0c0;
-}
-
-.version-card-inner {
-  position: relative;
-  transform-style: preserve-3d;
-  transition: transform 0.1s;
-}
-
-.version-card-front,
-.version-card-back {
-  width: 100%;
-  border-radius: 8px;
-  display: block;
-}
-
-.version-card-back {
-  display: none;
+.version-card .card {
+  margin: 0;
 }
 
 .version-info {
   margin-top: 8px;
   font-size: 0.85em;
+  text-align: center;
 }
 
 .version-set {

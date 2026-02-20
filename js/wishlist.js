@@ -311,40 +311,50 @@ function showSearchModal() {
                 const usdPrice = card.prices?.usd || card.prices?.usd_foil || card.prices?.usd_etched || '0';
                 const foilStatus = card.prices?.usd ? 'normal' : (card.prices?.usd_foil ? 'foil' : (card.prices?.usd_etched ? 'etched' : 'normal'));
                 const inWishlist = wishlistCards.some(c => c.scryfallId === card.id);
+                const cardData = {
+                  name: card.name,
+                  scryfallId: card.id,
+                  setCode: card.set.toUpperCase(),
+                  setName: card.set_name,
+                  collectorNumber: card.collector_number,
+                  rarity: card.rarity,
+                  foil: foilStatus,
+                  quantity: 1,
+                  price: parseFloat(card.prices?.usd || '0'),
+                  currency: 'USD',
+                  scryfallPrices: card.prices,
+                  types: card.type_line,
+                  colors: card.colors || [],
+                  keywords: card.keywords || [],
+                  manaCost: card.mana_cost || '',
+                  cmc: card.cmc || 0
+                };
+                
+                const foilClass = foilStatus !== 'normal' ? foilStatus : '';
+                const setIcon = `https://svgs.scryfall.io/sets/${card.set.toLowerCase()}.svg`;
+                
                 return `
-                  <div class="version-card ${foilStatus !== 'normal' ? foilStatus : ''} ${inWishlist ? 'in-wishlist' : ''}" 
-                       data-card='${JSON.stringify({
-                         name: card.name,
-                         scryfallId: card.id,
-                         setCode: card.set.toUpperCase(),
-                         setName: card.set_name,
-                         collectorNumber: card.collector_number,
-                         rarity: card.rarity,
-                         foil: foilStatus,
-                         quantity: 1,
-                         price: parseFloat(card.prices?.usd || '0'),
-                         currency: 'USD',
-                         scryfallPrices: card.prices,
-                         imageUrl: card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal,
-                         types: card.type_line,
-                         colors: card.colors || [],
-                         keywords: card.keywords || [],
-                         manaCost: card.mana_cost || '',
-                         cmc: card.cmc || 0
-                       })}'>
-                    <div class="version-card-inner">
-                      <img src="${card.image_uris?.small || card.card_faces?.[0]?.image_uris?.small}" 
-                           alt="${card.name}" 
-                           class="version-card-front"
-                           onerror="this.src='images/back.png'">
-                      <img src="images/back.png" alt="Card back" class="version-card-back">
+                  <div class="version-card ${inWishlist ? 'in-wishlist' : ''}" data-card='${JSON.stringify(cardData)}'>
+                    <div class="card ${foilClass}" data-scryfall-id="${card.id}">
+                      <div class="card-image-wrapper">
+                        <div class="card-image-inner">
+                          <img src="${card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal}" 
+                               alt="${card.name}" 
+                               class="card-image">
+                          <img src="images/back.png" alt="Card back" class="card-back">
+                        </div>
+                      </div>
+                      <div class="card-header">
+                        <div class="card-name">${card.name}</div>
+                        <div class="card-value">$${usdPrice}</div>
+                      </div>
+                      <div class="card-set"><img src="${setIcon}" class="set-icon" alt="${card.set.toUpperCase()}">${card.set_name}</div>
+                      <div class="card-details">
+                        <span class="badge rarity-${card.rarity}">${card.rarity}</span>
+                        ${foilStatus !== 'normal' ? `<span class="badge foil-${foilStatus}">${foilStatus}</span>` : ''}
+                      </div>
                     </div>
-                    <div class="version-info">
-                      <div class="version-set">${card.set_name}</div>
-                      <div class="version-code">${card.set.toUpperCase()} #${card.collector_number}${foilStatus !== 'normal' ? ' ✨' : ''}</div>
-                      <div class="version-price">$${usdPrice}</div>
-                      ${inWishlist ? '<div class="version-added">✓ In Wishlist</div>' : ''}
-                    </div>
+                    ${inWishlist ? '<div class="version-added">✓ In Wishlist</div>' : ''}
                   </div>
                 `;
               }).join('')}
@@ -353,25 +363,50 @@ function showSearchModal() {
         `;
       }).join('');
       
+      // Setup card interactions
+      const container = results;
+      container.querySelectorAll('.card-image-wrapper').forEach(wrapper => {
+        const inner = wrapper.querySelector('.card-image-inner');
+        let isDragging = false;
+        
+        const startDrag = e => { isDragging = true; e.preventDefault(); };
+        const endDrag = () => {
+          if (isDragging) {
+            isDragging = false;
+            inner.style.transform = '';
+            inner.style.boxShadow = '';
+            inner.style.setProperty('--shimmer-x', '50%');
+            inner.style.setProperty('--shimmer-y', '50%');
+          }
+        };
+        const onMove = e => {
+          if (!isDragging) return;
+          const rect = wrapper.getBoundingClientRect();
+          const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+          const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+          const x = (clientX - rect.left) / rect.width - 0.5;
+          const y = (clientY - rect.top) / rect.height - 0.5;
+          inner.style.transform = `rotateX(${-y * 60}deg) rotateY(${x * 120}deg)`;
+          inner.style.boxShadow = `${x * -20}px ${10 + y * -10}px 20px rgba(0,0,0,0.5)`;
+          inner.style.setProperty('--shimmer-x', `${50 + x * 100}%`);
+          inner.style.setProperty('--shimmer-y', `${50 + y * 100}%`);
+        };
+        
+        wrapper.addEventListener('mousedown', startDrag);
+        wrapper.addEventListener('touchstart', startDrag);
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('touchmove', onMove);
+      });
+      
       // Add click handlers
       document.querySelectorAll('.version-card:not(.in-wishlist)').forEach(el => {
         el.addEventListener('click', () => {
           const card = JSON.parse(el.dataset.card);
           addToWishlist(card);
           el.classList.add('in-wishlist');
-          el.querySelector('.version-info').insertAdjacentHTML('beforeend', '<div class="version-added">✓ Added</div>');
-        });
-        
-        // Add 3D tilt
-        const inner = el.querySelector('.version-card-inner');
-        el.addEventListener('mousemove', (e) => {
-          const rect = el.getBoundingClientRect();
-          const x = (e.clientX - rect.left) / rect.width - 0.5;
-          const y = (e.clientY - rect.top) / rect.height - 0.5;
-          inner.style.transform = `rotateX(${-y * 20}deg) rotateY(${x * 20}deg)`;
-        });
-        el.addEventListener('mouseleave', () => {
-          inner.style.transform = '';
+          el.insertAdjacentHTML('beforeend', '<div class="version-added">✓ Added</div>');
         });
       });
     }, 300);
