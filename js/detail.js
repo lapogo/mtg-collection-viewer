@@ -358,7 +358,7 @@ async function loadUpgrades(card, collectionCard) {
   // Show loading
   document.getElementById('upgrades-section').innerHTML = `
     <div class="upgrades-panel">
-      <h3>Possible Upgrades</h3>
+      <h3>Other Versions</h3>
       <div class="upgrades-loading">Loading...</div>
     </div>
   `;
@@ -381,15 +381,15 @@ async function loadUpgrades(card, collectionCard) {
       const img = c.image_uris?.normal || c.card_faces?.[0]?.image_uris?.normal;
       if (c.nonfoil) {
         const price = parseFloat(c.prices?.usd || '0');
-        if (price > currentPrice) expanded.push({ id: c.id, img, setName: c.set_name, price, foil: false, uri: c.scryfall_uri });
+        expanded.push({ id: c.id, img, setName: c.set_name, price, foil: false, uri: c.scryfall_uri });
       }
       if (c.foil) {
         const price = parseFloat(c.prices?.usd_foil || '0');
-        if (price > currentPrice) expanded.push({ id: c.id + '-foil', img, setName: c.set_name, price, foil: true, uri: c.scryfall_uri });
+        expanded.push({ id: c.id + '-foil', img, setName: c.set_name, price, foil: true, uri: c.scryfall_uri });
       }
     }
     expanded.sort((a, b) => a.price - b.price);
-    const upgrades = expanded.slice(0, 8);
+    const upgrades = expanded.slice(0, 12);
     
     if (upgrades.length === 0) {
       document.getElementById('upgrades-section').innerHTML = '';
@@ -398,19 +398,19 @@ async function loadUpgrades(card, collectionCard) {
     
     document.getElementById('upgrades-section').innerHTML = `
       <div class="upgrades-panel">
-        <h3>Possible Upgrades</h3>
+        <h3>Other Versions</h3>
         <div class="upgrades-grid">
           ${upgrades.map(u => `
-              <a href="${u.uri}" target="_blank" class="upgrade-card ${u.foil ? 'foil' : ''}" data-card-id="${u.id}">
+              <div class="upgrade-card ${u.foil ? 'foil' : ''}" data-card-id="${u.id}">
                 <div class="upgrade-inner">
                   <img src="${u.img}" alt="${u.setName}" class="upgrade-front">
                   <img src="images/back.png" alt="Card back" class="upgrade-back">
                 </div>
                 <div class="upgrade-info">
-                  <div class="upgrade-set">${u.setName}${u.foil ? ' ✨' : ''}</div>
-                  <div class="upgrade-price">$${u.price.toFixed(2)}</div>
+                  <a href="${u.uri}" target="_blank" class="upgrade-set-link">${u.setName}${u.foil ? ' ✨' : ''}</a>
+                  <div class="upgrade-price">${u.price > 0 ? '$' + u.price.toFixed(2) : 'No price'}</div>
                 </div>
-              </a>
+              </div>
             `).join('')}
         </div>
       </div>
@@ -419,10 +419,11 @@ async function loadUpgrades(card, collectionCard) {
     // Add 3D tilt effect
     document.querySelectorAll('.upgrade-card').forEach(card => {
       const inner = card.querySelector('.upgrade-inner');
-      let isDragging = false;
+      let isDragging = false, hasMoved = false;
       
       const startDrag = e => {
         isDragging = true;
+        hasMoved = false;
         e.preventDefault();
       };
       
@@ -437,6 +438,7 @@ async function loadUpgrades(card, collectionCard) {
       
       const onMove = e => {
         if (!isDragging) return;
+        hasMoved = true;
         const rect = card.getBoundingClientRect();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -453,6 +455,7 @@ async function loadUpgrades(card, collectionCard) {
       document.addEventListener('touchend', endDrag);
       document.addEventListener('mousemove', onMove);
       document.addEventListener('touchmove', onMove);
+      card.addEventListener('click', e => { if (hasMoved) e.preventDefault(); });
       
       // Add context menu for trading binder
       card.addEventListener('contextmenu', (e) => {

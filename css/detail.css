@@ -535,13 +535,19 @@ body.has-art-bg::after {
   margin-top: -4px;
 }
 
-.upgrade-set {
+.upgrade-set, .upgrade-set-link {
   font-size: 0.75rem;
   color: #aaa;
   margin-bottom: 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-decoration: none;
+}
+
+.upgrade-set-link:hover {
+  color: #fff;
+  text-decoration: underline;
 }
 
 .upgrade-price {
