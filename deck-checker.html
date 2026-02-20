@@ -138,7 +138,8 @@
       n.className = 'notification';
       n.textContent = message;
       document.body.appendChild(n);
-      setTimeout(() => { n.style.opacity = '0'; setTimeout(() => n.remove(), 300); }, 2000);
+      requestAnimationFrame(() => n.classList.add('show'));
+      setTimeout(() => { n.classList.remove('show'); setTimeout(() => n.remove(), 300); }, 2000);
     }
 
     function addToWishlist(scryfallId) {
