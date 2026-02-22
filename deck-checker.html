@@ -293,11 +293,9 @@
     }
     
     function parseCSVLine(line) {
-          collectionCards.set(name, []);
-        }
-        collectionCards.get(name).push(cardVersion);
-      }
-    }
+      const result = [];
+      let current = '';
+      let inQuotes = false;
     
     function parseCSVLine(line) {
       const result = [];
