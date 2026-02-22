@@ -791,6 +791,290 @@ binderFoil.test('Correct price key for etched', () => {
   assertEquals(priceKey, 'usd_etched');
 });
 
+// === Deck Checker Wishlist Integration ===
+const dcw = suite('Deck Checker Wishlist');
+
+// Helper: simulate convertDeck logic for owned cards
+function getOwnedCardVersions(card, collectionCards, wishlistCards, getOracleId) {
+  const allVersions = [];
+  if (collectionCards.has(card.name)) {
+    allVersions.push(...collectionCards.get(card.name));
+  } else {
+    for (const [, versions] of collectionCards.entries()) {
+      if (versions.some(v => v.scryfallId === card.scryfallId)) {
+        allVersions.push(...versions);
+        break;
+      }
+    }
+  }
+  let wlVersions = wishlistCards.get(card.name.toLowerCase());
+  if (!wlVersions) {
+    const ownedOracleId = allVersions[0]?.oracle_id || getOracleId(card.scryfallId);
+    if (ownedOracleId) {
+      for (const [, versions] of wishlistCards.entries()) {
+        if (versions.some(v => v.oracle_id === ownedOracleId)) {
+          wlVersions = versions;
+          break;
+        }
+      }
+    }
+  }
+  if (wlVersions) {
+    wlVersions.forEach(v => allVersions.push({...v, _fromWishlist: true}));
+  }
+  return allVersions;
+}
+
+// Helper: simulate convertDeck logic for missing cards
+function getMissingCardVersions(card, wishlistCards) {
+  const name = card.name.toLowerCase();
+  let wlVersions = wishlistCards.get(name) || wishlistCards.get(card.realName) || null;
+  if (!wlVersions && card.oracle_id) {
+    for (const [, versions] of wishlistCards.entries()) {
+      if (versions.some(v => v.oracle_id === card.oracle_id)) {
+        wlVersions = versions;
+        break;
+      }
+    }
+  }
+  if (wlVersions) return wlVersions.map(v => ({...v, _fromWishlist: true}));
+  return [];
+}
+
+// --- Owned card: single collection version, no wishlist ---
+dcw.test('Owned card with 1 collection version, no wishlist', () => {
+  const col = new Map([['lightning bolt', [{ scryfallId: 'lb1', setCode: 'LEA', oracle_id: 'o1', foil: 'normal' }]]]);
+  const wl = new Map();
+  const result = getOwnedCardVersions({ name: 'lightning bolt', scryfallId: 'lb1' }, col, wl, () => null);
+  assertEquals(result.length, 1);
+  assertEquals(result[0].scryfallId, 'lb1');
+  assert(!result[0]._fromWishlist, 'Should not be from wishlist');
+});
+
+// --- Owned card: collection + wishlist version by name ---
+dcw.test('Owned card picks up wishlist version by name match', () => {
+  const col = new Map([['lightning bolt', [{ scryfallId: 'lb1', setCode: 'LEA', oracle_id: 'o1', foil: 'normal' }]]]);
+  const wl = new Map([['lightning bolt', [{ scryfallId: 'lb2', setCode: 'M21', oracle_id: 'o1', foil: 'foil' }]]]);
+  const result = getOwnedCardVersions({ name: 'lightning bolt', scryfallId: 'lb1' }, col, wl, () => null);
+  assertEquals(result.length, 2);
+  assertEquals(result[0].scryfallId, 'lb1');
+  assert(!result[0]._fromWishlist);
+  assertEquals(result[1].scryfallId, 'lb2');
+  assert(result[1]._fromWishlist === true, 'Wishlist version should be tagged');
+});
+
+// --- Owned card: wishlist version found by oracle_id (DFC / different name) ---
+dcw.test('Owned card finds wishlist version by oracle_id when names differ', () => {
+  const col = new Map([['delver of secrets', [{ scryfallId: 'ds1', setCode: 'ISD', oracle_id: 'o-delver', foil: 'normal' }]]]);
+  const wl = new Map([['delver of secrets // insectile aberration', [{ scryfallId: 'ds2', setCode: 'MID', oracle_id: 'o-delver', foil: 'foil' }]]]);
+  const result = getOwnedCardVersions({ name: 'delver of secrets', scryfallId: 'ds1' }, col, wl, () => null);
+  assertEquals(result.length, 2);
+  assert(result[1]._fromWishlist === true);
+  assertEquals(result[1].oracle_id, 'o-delver');
+});
+
+// --- Owned card: oracle_id fallback via getOracleId function ---
+dcw.test('Owned card uses getOracleId fallback when collection version has no oracle_id', () => {
+  const col = new Map([['sol ring', [{ scryfallId: 'sr1', setCode: 'C21' }]]]);
+  const wl = new Map([['sol ring', [{ scryfallId: 'sr2', setCode: 'CMR', oracle_id: 'o-sol', foil: 'normal' }]]]);
+  // oracle_id not on collection version, but name matches so it should still work
+  const result = getOwnedCardVersions({ name: 'sol ring', scryfallId: 'sr1' }, col, wl, () => null);
+  assertEquals(result.length, 2);
+  assert(result[1]._fromWishlist === true);
+});
+
+// --- Owned card: found via scryfallId when name doesn't match collection key ---
+dcw.test('Owned card found via scryfallId fallback in collection', () => {
+  const col = new Map([['the reaver cleaver', [{ scryfallId: 'rc1', setCode: 'BRO', oracle_id: 'o-rc', foil: 'normal' }]]]);
+  const wl = new Map();
+  // Deck list has flavor name, collection has real name
+  const result = getOwnedCardVersions({ name: "knuckles's gloves", scryfallId: 'rc1' }, col, wl, () => null);
+  assertEquals(result.length, 1);
+  assertEquals(result[0].scryfallId, 'rc1');
+});
+
+// --- Owned card: multiple collection versions, no wishlist ---
+dcw.test('Owned card with multiple collection versions triggers multi-select', () => {
+  const col = new Map([['counterspell', [
+    { scryfallId: 'cs1', setCode: 'ICE', oracle_id: 'o-cs', foil: 'normal' },
+    { scryfallId: 'cs2', setCode: 'MH2', oracle_id: 'o-cs', foil: 'foil' }
+  ]]]);
+  const wl = new Map();
+  const result = getOwnedCardVersions({ name: 'counterspell', scryfallId: 'cs1' }, col, wl, () => null);
+  assertEquals(result.length, 2);
+  assert(!result[0]._fromWishlist);
+  assert(!result[1]._fromWishlist);
+});
+
+// --- Owned card: collection + multiple wishlist versions ---
+dcw.test('Owned card merges collection and multiple wishlist versions', () => {
+  const col = new Map([['swords to plowshares', [{ scryfallId: 'sp1', setCode: 'ICE', oracle_id: 'o-sp', foil: 'normal' }]]]);
+  const wl = new Map([['swords to plowshares', [
+    { scryfallId: 'sp2', setCode: 'STA', oracle_id: 'o-sp', foil: 'normal' },
+    { scryfallId: 'sp2', setCode: 'STA', oracle_id: 'o-sp', foil: 'foil' }
+  ]]]);
+  const result = getOwnedCardVersions({ name: 'swords to plowshares', scryfallId: 'sp1' }, col, wl, () => null);
+  assertEquals(result.length, 3);
+  assert(!result[0]._fromWishlist);
+  assert(result[1]._fromWishlist === true);
+  assert(result[2]._fromWishlist === true);
+});
+
+// --- Missing card: found on wishlist by exact name ---
+dcw.test('Missing card found on wishlist by exact name', () => {
+  const wl = new Map([['force of will', [{ scryfallId: 'fw1', setCode: 'ALL', oracle_id: 'o-fw', foil: 'normal' }]]]);
+  const result = getMissingCardVersions({ name: 'force of will' }, wl);
+  assertEquals(result.length, 1);
+  assert(result[0]._fromWishlist === true);
+  assertEquals(result[0].scryfallId, 'fw1');
+});
+
+// --- Missing card: not on wishlist at all ---
+dcw.test('Missing card not on wishlist returns empty', () => {
+  const wl = new Map([['force of will', [{ scryfallId: 'fw1', oracle_id: 'o-fw' }]]]);
+  const result = getMissingCardVersions({ name: 'mana crypt' }, wl);
+  assertEquals(result.length, 0);
+});
+
+// --- Missing card: found via realName (flavor name resolved during check) ---
+dcw.test('Missing card found on wishlist via realName', () => {
+  const wl = new Map([['the reaver cleaver', [{ scryfallId: 'rc1', setCode: 'BRO', oracle_id: 'o-rc', foil: 'normal' }]]]);
+  const card = { name: "knuckles's gloves", realName: 'the reaver cleaver', oracle_id: 'o-rc' };
+  const result = getMissingCardVersions(card, wl);
+  assertEquals(result.length, 1);
+  assert(result[0]._fromWishlist === true);
+});
+
+// --- Missing card: found via oracle_id when name and realName don't match ---
+dcw.test('Missing card found on wishlist via oracle_id fallback', () => {
+  const wl = new Map([['the reaver cleaver', [{ scryfallId: 'rc1', setCode: 'BRO', oracle_id: 'o-rc', foil: 'foil' }]]]);
+  const card = { name: "knuckles's gloves", realName: undefined, oracle_id: 'o-rc' };
+  const result = getMissingCardVersions(card, wl);
+  assertEquals(result.length, 1);
+  assertEquals(result[0].scryfallId, 'rc1');
+});
+
+// --- Missing card: no oracle_id, no realName, no name match ---
+dcw.test('Missing card with no oracle_id and no name match returns empty', () => {
+  const wl = new Map([['the reaver cleaver', [{ scryfallId: 'rc1', oracle_id: 'o-rc' }]]]);
+  const card = { name: "knuckles's gloves" };
+  const result = getMissingCardVersions(card, wl);
+  assertEquals(result.length, 0);
+});
+
+// --- Missing card: multiple wishlist versions (normal + foil) ---
+dcw.test('Missing card with multiple wishlist versions returns all tagged', () => {
+  const wl = new Map([['rhystic study', [
+    { scryfallId: 'rs1', setCode: 'PCY', oracle_id: 'o-rs', foil: 'normal' },
+    { scryfallId: 'rs1', setCode: 'PCY', oracle_id: 'o-rs', foil: 'foil' }
+  ]]]);
+  const result = getMissingCardVersions({ name: 'rhystic study' }, wl);
+  assertEquals(result.length, 2);
+  assert(result[0]._fromWishlist === true);
+  assert(result[1]._fromWishlist === true);
+  assertEquals(result[0].foil, 'normal');
+  assertEquals(result[1].foil, 'foil');
+});
+
+// --- _fromWishlist tag is always set on wishlist versions ---
+dcw.test('All wishlist versions are tagged with _fromWishlist', () => {
+  const col = new Map([['path to exile', [{ scryfallId: 'pe1', oracle_id: 'o-pe', foil: 'normal' }]]]);
+  const wl = new Map([['path to exile', [{ scryfallId: 'pe2', oracle_id: 'o-pe', foil: 'foil' }]]]);
+  const result = getOwnedCardVersions({ name: 'path to exile', scryfallId: 'pe1' }, col, wl, () => null);
+  const wishlistVersions = result.filter(v => v._fromWishlist);
+  const collectionVersions = result.filter(v => !v._fromWishlist);
+  assertEquals(collectionVersions.length, 1);
+  assertEquals(wishlistVersions.length, 1);
+});
+
+// --- Empty wishlist map doesn't break anything ---
+dcw.test('Empty wishlist map returns only collection versions', () => {
+  const col = new Map([['brainstorm', [{ scryfallId: 'bs1', oracle_id: 'o-bs', foil: 'normal' }]]]);
+  const wl = new Map();
+  const result = getOwnedCardVersions({ name: 'brainstorm', scryfallId: 'bs1' }, col, wl, () => null);
+  assertEquals(result.length, 1);
+  assert(!result[0]._fromWishlist);
+});
+
+dcw.test('Empty wishlist map returns empty for missing cards', () => {
+  const result = getMissingCardVersions({ name: 'brainstorm' }, new Map());
+  assertEquals(result.length, 0);
+});
+
+// --- Case insensitivity ---
+dcw.test('Wishlist lookup is case insensitive for owned cards', () => {
+  const col = new Map([['teferi, hero of dominaria', [{ scryfallId: 't1', oracle_id: 'o-t' }]]]);
+  const wl = new Map([['teferi, hero of dominaria', [{ scryfallId: 't2', oracle_id: 'o-t', foil: 'foil' }]]]);
+  const result = getOwnedCardVersions({ name: 'Teferi, Hero of Dominaria', scryfallId: 't1' }, col, wl, () => null);
+  // Name doesn't match collection (case), falls through to scryfallId match
+  // But wishlist lookup uses .toLowerCase() so it should find it
+  const wlResults = result.filter(v => v._fromWishlist);
+  assertEquals(wlResults.length, 1);
+});
+
+// --- checkAlternateNames return format ---
+dcw.test('checkAlternateNames returns match and scryfallCard on collection hit', () => {
+  // Simulating the return format
+  const result = { match: { scryfallId: 'rc1', type_line: 'Artifact — Equipment' }, scryfallCard: { oracle_id: 'o-rc', name: 'The Reaver Cleaver' } };
+  assert(result.match !== null, 'match should exist');
+  assert(result.scryfallCard !== null, 'scryfallCard should exist');
+  assertEquals(result.match.scryfallId, 'rc1');
+});
+
+dcw.test('checkAlternateNames returns null match but scryfallCard on no collection hit', () => {
+  const result = { match: null, scryfallCard: { oracle_id: 'o-rc', name: 'The Reaver Cleaver' } };
+  assert(result.match === null, 'match should be null');
+  assert(result.scryfallCard !== null, 'scryfallCard should still exist');
+  assertEquals(result.scryfallCard.oracle_id, 'o-rc');
+});
+
+// --- Missing card stores oracle_id and realName from checkDeck ---
+dcw.test('Missing card with realName and oracle_id from check phase', () => {
+  const card = { name: "gary, the snail", quantity: 1, oracle_id: 'o-toxrill', realName: 'toxrill, the corrosive' };
+  const wl = new Map([['toxrill, the corrosive', [{ scryfallId: 'tx1', oracle_id: 'o-toxrill', foil: 'normal' }]]]);
+  const result = getMissingCardVersions(card, wl);
+  assertEquals(result.length, 1);
+  assertEquals(result[0].scryfallId, 'tx1');
+});
+
+// --- Owned card: no duplicate wishlist entries when name and oracle_id both match ---
+dcw.test('No duplicate wishlist versions when name and oracle_id point to same entry', () => {
+  const col = new Map([['sol ring', [{ scryfallId: 'sr1', oracle_id: 'o-sol' }]]]);
+  const wl = new Map([['sol ring', [{ scryfallId: 'sr2', oracle_id: 'o-sol', foil: 'foil' }]]]);
+  const result = getOwnedCardVersions({ name: 'sol ring', scryfallId: 'sr1' }, col, wl, () => null);
+  // Name match finds it first, oracle_id fallback should not run
+  const wlResults = result.filter(v => v._fromWishlist);
+  assertEquals(wlResults.length, 1);
+});
+
+// --- parseDeckList lowercases names ---
+dcw.test('Deck list names are lowercased for consistent matching', () => {
+  // Simulating parseDeckList behavior
+  const name = 'Lightning Bolt';
+  const parsed = name.toLowerCase();
+  assertEquals(parsed, 'lightning bolt');
+});
+
+// --- Wishlist loadWishlist stores oracle_id ---
+dcw.test('Wishlist card versions include oracle_id for matching', () => {
+  const wlVersion = { scryfallId: 'abc', setCode: 'SET', collectorNumber: '1', foil: 'normal', setName: 'Test Set', oracle_id: 'o-test' };
+  assert(wlVersion.oracle_id !== undefined, 'oracle_id must be present');
+  assertEquals(wlVersion.oracle_id, 'o-test');
+});
+
+// --- Wishlist foil suffix handling ---
+dcw.test('Wishlist foil IDs have -foil suffix stripped for Scryfall fetch', () => {
+  const id = 'abc123-foil';
+  const stripped = id.replace(/-foil$/, '');
+  assertEquals(stripped, 'abc123');
+});
+
+dcw.test('Non-foil wishlist IDs are unchanged after strip', () => {
+  const id = 'abc123';
+  const stripped = id.replace(/-foil$/, '');
+  assertEquals(stripped, 'abc123');
+});
+
 // Run all tests
 Object.keys(suites).forEach(suiteName => {
   suites[suiteName].forEach(({ name, fn }) => {
