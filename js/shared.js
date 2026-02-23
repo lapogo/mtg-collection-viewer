@@ -456,8 +456,17 @@ async function loadCollection() {
     if (cached) Object.assign(card, cached);
   }
   
-  // Re-sort and update stats after cached data may have changed prices
-  applyFilters();
+  // Re-sort after cached data may have changed prices
+  const sort = document.getElementById('sort')?.value || 'price-desc';
+  filteredCollection.sort((a, b) => {
+    switch(sort) {
+      case 'name': return a.name.localeCompare(b.name);
+      case 'price-asc': return (getCardPrice(a) * a.quantity) - (getCardPrice(b) * b.quantity);
+      case 'price-desc':
+      default: return (getCardPrice(b) * b.quantity) - (getCardPrice(a) * a.quantity);
+    }
+  });
+  updateStats();
   
   // Update price source state after loading cached data
   if (typeof updatePriceSourceState === 'function') updatePriceSourceState();
