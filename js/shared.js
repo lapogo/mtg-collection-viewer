@@ -456,8 +456,8 @@ async function loadCollection() {
     if (cached) Object.assign(card, cached);
   }
   
-  // Update stats after cached data is loaded (for correct price source)
-  updateStats();
+  // Re-sort and update stats after cached data may have changed prices
+  applyFilters();
   
   // Update price source state after loading cached data
   if (typeof updatePriceSourceState === 'function') updatePriceSourceState();
