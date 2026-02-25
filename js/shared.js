@@ -147,7 +147,7 @@ function getMainType(typeLine) {
 
 function renderCardHTML(card, nameCounts = {}) {
   const foilClass = card.foil !== 'normal' ? card.foil : '';
-  const setIcon = `https://svgs.scryfall.io/sets/${card.setCode.toLowerCase()}.svg`;
+  const setIcon = `https://svgs.scryfall.io/sets/${(card.setCode || '').toLowerCase()}.svg`;
   const fallbackIcon = 'https://svgs.scryfall.io/sets/default.svg';
   const mainType = getMainType(card.type_line);
   const keywordTags = (card.keywords || []).slice(0, 3).map(k => `<span class="badge keyword-badge clickable" data-filter="keyword" data-value="${k}">${k}</span>`).join('');
@@ -421,28 +421,56 @@ function updateStats() {
 
 async function loadCollection() {
   const response = await fetch('data/Collection.csv');
+  if (!response.ok) {
+    console.error('Failed to load Collection.csv:', response.status);
+    collection = [];
+    filteredCollection = [];
+    setupPriceSlider();
+    updateStats();
+    if (typeof onCollectionLoaded === 'function') onCollectionLoaded();
+    return collection;
+  }
   const text = await response.text();
-  const lines = text.split('\n').slice(1);
+  const lines = text.split('\n');
+  const headerLine = lines[0];
+  const headers = parseCSVLine(headerLine).map(h => h.trim().toLowerCase());
   
-  collection = lines
+  // Map column names to indices (supports different CSV formats)
+  const col = {
+    name: headers.findIndex(h => h === 'name'),
+    setCode: headers.findIndex(h => h === 'set code' || h === 'edition code' || h === 'set'),
+    setName: headers.findIndex(h => h === 'set name' || h === 'edition'),
+    collectorNumber: headers.findIndex(h => h === 'collector number' || h === 'card number'),
+    foil: headers.findIndex(h => h === 'foil'),
+    rarity: headers.findIndex(h => h === 'rarity'),
+    quantity: headers.findIndex(h => h === 'quantity' || h === 'count'),
+    scryfallId: headers.findIndex(h => h === 'scryfall id'),
+    price: headers.findIndex(h => h === 'price' || h === 'purchase price'),
+    condition: headers.findIndex(h => h === 'condition'),
+    language: headers.findIndex(h => h === 'language'),
+    currency: headers.findIndex(h => h === 'currency')
+  };
+  
+  collection = lines.slice(1)
     .filter(line => line.trim())
     .map(line => {
       const parts = parseCSVLine(line);
       return {
-        name: parts[0],
-        setCode: parts[1],
-        setName: parts[2],
-        collectorNumber: parts[3],
-        foil: parts[4],
-        rarity: parts[5],
-        quantity: parseInt(parts[6]) || 1,
-        scryfallId: parts[8],
-        price: parseFloat(parts[9]) || 0,
-        condition: parts[12],
-        language: parts[13],
-        currency: parts[14] || 'USD'
+        name: parts[col.name] || '',
+        setCode: parts[col.setCode] || '',
+        setName: parts[col.setName] || '',
+        collectorNumber: parts[col.collectorNumber] || '',
+        foil: parts[col.foil] || 'normal',
+        rarity: parts[col.rarity] || 'common',
+        quantity: parseInt(parts[col.quantity]) || 1,
+        scryfallId: parts[col.scryfallId] || '',
+        price: parseFloat(parts[col.price]) || 0,
+        condition: parts[col.condition] || '',
+        language: parts[col.language] || '',
+        currency: parts[col.currency] || 'USD'
       };
-    });
+    })
+    .filter(card => card.name && card.scryfallId);
   
   maxPriceValue = Math.ceil(Math.max(...collection.map(c => c.price)));
   setupPriceSlider();

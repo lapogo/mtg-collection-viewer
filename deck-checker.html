@@ -188,28 +188,35 @@
 
     async function loadCollection() {
       const response = await fetch('data/Collection.csv');
+      if (!response.ok) { await loadWishlist(); return; }
       const text = await response.text();
-      const lines = text.split('\n').slice(1);
+      const lines = text.split('\n');
+      const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+      const ci = {
+        name: headers.findIndex(h => h === 'name'),
+        setCode: headers.findIndex(h => h === 'set code' || h === 'edition code' || h === 'set'),
+        setName: headers.findIndex(h => h === 'set name' || h === 'edition'),
+        collectorNumber: headers.findIndex(h => h === 'collector number' || h === 'card number'),
+        foil: headers.findIndex(h => h === 'foil'),
+        scryfallId: headers.findIndex(h => h === 'scryfall id')
+      };
       
-      for (const line of lines) {
+      for (const line of lines.slice(1)) {
         if (!line.trim()) continue;
         const parts = parseCSVLine(line);
-        const name = parts[0].toLowerCase();
-        const setCode = parts[1];
-        const collectorNumber = parts[3];
-        const foil = parts[4];
-        const scryfallId = parts[8];
+        const name = (parts[ci.name] || '').toLowerCase();
+        const scryfallId = parts[ci.scryfallId] || '';
         
-        if (!scryfallId) continue;
+        if (!scryfallId || !name) continue;
         
         const cached = await getCardData(scryfallId);
         const cardVersion = {
           scryfallId,
-          setCode,
-          collectorNumber,
-          foil,
+          setCode: parts[ci.setCode] || '',
+          collectorNumber: parts[ci.collectorNumber] || '',
+          foil: parts[ci.foil] || 'normal',
           type_line: cached?.type_line || '',
-          setName: parts[2],
+          setName: parts[ci.setName] || '',
           oracle_id: cached?.oracle_id
         };
         
